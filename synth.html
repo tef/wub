@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Synth</title>
+    <script src="qwerty-hancock.js"></script>
+</head>
+<body>
+<div id="keyboard"></div>
+<script>
+  var keyboard = new QwertyHancock({
+      id: 'keyboard',
+      startNote: 'A2',
+      octaves: 2,
+      width: 600,
+      height: 150,
+  });
+
+  var context = new AudioContext();
+
+  var osc = context.createOscillator();
+  osc.type = 'sawtooth';
+  osc.frequency.value = 440;
+  osc.start();
+
+  var env = context.createGain();
+  env.gain.value = 0;
+
+  osc.connect(env);
+  env.connect(context.destination);
+
+  keyboard.keyDown = function (note, frequency) {
+      now = context.currentTime;
+      amp = env.gain.value;
+
+      env.gain.cancelAndHoldAtTime(now);
+
+      osc.frequency.setValueAtTime(frequency, now);
+      env.gain.setValueAtTime(amp, now);
+
+      env.gain.linearRampToValueAtTime(1, now + 0.1);
+      env.gain.linearRampToValueAtTime(0, now + 0.5);
+  };
+  keyboard.keyUp = function (node, frequency) {};
+
+</script> 
+</body></html>
