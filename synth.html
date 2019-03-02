@@ -46,24 +46,24 @@
   env.connect(context.destination);
 
   keyboard.keyDown = function (note, frequency) {
-      now = context.currentTime;
+      now = context.currentTime+0.1;
       amp = env.gain.value;
 
-      env.gain.cancelAndHoldAtTime(now);
+      env.gain.cancelScheduledValues(now);
       env.gain.setValueAtTime(amp, now);
 
-      osc1.frequency.setValueAtTime(frequency, now);
-      osc2.frequency.setValueAtTime(frequency*0.25, now);
-      osc3.frequency.setValueAtTime(frequency*0.5, now);
+      osc1.frequency.linearRampToValueAtTime(frequency, now);
+      osc2.frequency.linearRampToValueAtTime(frequency*0.25, now);
+      osc3.frequency.linearRampToValueAtTime(frequency*0.5, now);
 
-      env.gain.linearRampToValueAtTime(1, now + 0.1);
+      env.gain.linearRampToValueAtTime(1, now);
   };
 
   keyboard.keyUp = function (node, frequency) {
       now = context.currentTime;
       amp = env.gain.value;
 
-      env.gain.cancelAndHoldAtTime(now);
+      env.gain.cancelScheduledValues(now);
       env.gain.setValueAtTime(amp, now);
 
       env.gain.linearRampToValueAtTime(0, now + 0.5);
