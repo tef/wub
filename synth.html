@@ -18,15 +18,31 @@
 
   var context = new AudioContext();
 
-  var osc = context.createOscillator();
-  osc.type = 'sawtooth';
-  osc.frequency.value = 440;
-  osc.start();
+  function sawtooth(out) {
+	  var osc = context.createOscillator();
+	  osc.type = 'sawtooth';
+	  osc.frequency.value = 440;
+	  osc.start();
+
+	  var env = context.createGain();
+	  var lfo = context.createOscillator();
+	  lfo.frequency = 4;
+	  lfo.type = 'square';
+	  env.gain.value = 1;
+	  lfo.connect(env.gain);
+	  osc.connect(env);
+	  env.connect(out);
+	  return osc;
+  }
 
   var env = context.createGain();
+
+  var osc1 = sawtooth(env);
+  var osc2 = sawtooth(env);
+  var osc3 = sawtooth(env);
+
   env.gain.value = 0;
 
-  osc.connect(env);
   env.connect(context.destination);
 
   keyboard.keyDown = function (note, frequency) {
@@ -34,9 +50,11 @@
       amp = env.gain.value;
 
       env.gain.cancelAndHoldAtTime(now);
-
-      osc.frequency.setValueAtTime(frequency, now);
       env.gain.setValueAtTime(amp, now);
+
+      osc1.frequency.setValueAtTime(frequency, now);
+      osc2.frequency.setValueAtTime(frequency*0.25, now);
+      osc3.frequency.setValueAtTime(frequency*0.5, now);
 
       env.gain.linearRampToValueAtTime(1, now + 0.1);
       env.gain.linearRampToValueAtTime(0, now + 0.5);
