@@ -21,18 +21,41 @@
 
   var context = new AudioContext();
 
+  var stepCurve = new Float32Array(256);
+  for (var i=0; i<128; i++) stepCurve[i] = -1;
+  for (var i=128; i<256; i++) stepCurve[i] = 1;
+
+  var bumpCurve = new Float32Array(2);
+  for (var i=0; i<2; i++) bumpCurve[i] = 1;
+
   function sawtooth(out) {
 	  var osc = context.createOscillator();
 	  osc.type = 'sawtooth';
 	  osc.frequency.value = 440;
-	  osc.start();
 
-	  var env = context.createGain();
-	  env.gain.value = 1;
-	  osc.connect(env);
+      var pwm = context.createWaveShaper();
+      pwm.curve = stepCurve;
+      //pwm.oversample = '2x';
+
+      var gain = context.createGain();
+      var width = gain.gain;
+      width.value = 0.5;
+
+      var bump = context.createWaveShaper();
+      bump.curve = bumpCurve;
+
+      osc.connect(pwm);
+      gain.connect(pwm);
+
+      osc.connect(bump);
+      bump.connect(gain);
+
+      osc.start();
+
 	  return {
+        width: width, 
 	  	connect: function(out) {
-		    env.connect(out);
+		    pwm.connect(out);
 		},
 		setFrequency: function(frequency, now) { 
 		      osc.frequency.linearRampToValueAtTime(frequency, now);
@@ -57,6 +80,34 @@
   analyser.fftSize = 2048;
   analyser.smoothingTimeConstant = 0.85;
 
+  env.connect(analyser);
+  analyser.connect(context.destination);
+
+  keyboard.keyDown = function (note, frequency) {
+      context.resume().then(function(){
+      now = context.currentTime+0.1;
+      amp = env.gain.value;
+      env.gain.cancelScheduledValues(now);
+      env.gain.setValueAtTime(amp, now);
+
+      osc1.setFrequency(frequency, now);
+      osc2.setFrequency(frequency*0.25, now);
+      osc3.setFrequency(frequency*0.5, now);
+
+      env.gain.linearRampToValueAtTime(1, now);
+      })
+  };
+
+  keyboard.keyUp = function (node, frequency) {
+      now = context.currentTime;
+      amp = env.gain.value;
+
+      env.gain.cancelScheduledValues(now);
+      env.gain.setValueAtTime(amp, now);
+
+      env.gain.linearRampToValueAtTime(0, now + 0.5);
+  }
+
   var bufferLength = analyser.fftSize;
   var graphLength = bufferLength/2;
   var dataArray = new Float32Array(bufferLength);
@@ -64,7 +115,6 @@
   var canvasCtx = canvas.getContext("2d");
   WIDTH = canvas.width;
   HEIGHT = canvas.height;
-
 
   function draw() {
 	  requestAnimationFrame(draw);
@@ -102,44 +152,21 @@
       canvasCtx.stroke();
   };
 
-  env.connect(analyser);
-  analyser.connect(context.destination);
-
-  keyboard.keyDown = function (note, frequency) {
-      context.resume().then(function(){
-      now = context.currentTime+0.1;
-      amp = env.gain.value;
-      env.gain.cancelScheduledValues(now);
-      env.gain.setValueAtTime(amp, now);
-
-      osc1.setFrequency(frequency, now);
-      osc2.setFrequency(frequency*0.25, now);
-      osc3.setFrequency(frequency*0.5, now);
-
-      env.gain.linearRampToValueAtTime(1, now);
-      })
-  };
-
-  keyboard.keyUp = function (node, frequency) {
-      now = context.currentTime;
-      amp = env.gain.value;
-
-      env.gain.cancelScheduledValues(now);
-      env.gain.setValueAtTime(amp, now);
-
-      env.gain.linearRampToValueAtTime(0, now + 0.5);
-  }
-
   canvasCtx.clearRect(0, 0, WIDTH, HEIGHT);
   draw();
 
-  // detune oscillator
+  // proper unlocking of context
+  // draw better keyboard without weird bug
+  // osciliscope zero crossing
+  // polyphony
+
+  // juno simulation
+  // pwm , saw, sub oscilators
+  // pmw = sawtooth 
+  // envelope 
   // release / decay properly i.e  aim over then fall down to note
 
-  // wavetable / waveform
 
   // chorus effect? delay?
-
-  // polyphony
 </script> 
 </body></html>
