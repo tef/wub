@@ -58,6 +58,7 @@
   analyser.smoothingTimeConstant = 0.85;
 
   var bufferLength = analyser.fftSize;
+  var graphLength = bufferLength/2;
   var dataArray = new Float32Array(bufferLength);
   var canvas = document.querySelector('#visualizer');
   var canvasCtx = canvas.getContext("2d");
@@ -66,32 +67,39 @@
 
 
   function draw() {
-  requestAnimationFrame(draw);
-  analyser.getFloatTimeDomainData(dataArray);
+	  requestAnimationFrame(draw);
+	  analyser.getFloatTimeDomainData(dataArray);
 
-  canvasCtx.fillStyle = 'rgb(200, 200, 200)';
-  canvasCtx.fillRect(0, 0, WIDTH, HEIGHT);
-  canvasCtx.lineWidth = 2;
-  canvasCtx.strokeStyle = 'rgb(0, 0, 0)';
-  canvasCtx.beginPath();
+	  canvasCtx.fillStyle = 'rgb(200, 200, 200)';
+	  canvasCtx.fillRect(0, 0, WIDTH, HEIGHT);
+	  canvasCtx.lineWidth = 2;
+	  canvasCtx.strokeStyle = 'rgb(0, 0, 0)';
+	  canvasCtx.beginPath();
 
-  var sliceWidth = WIDTH * 1.0 / bufferLength;
-  var x = 0;
+	  var sliceWidth = WIDTH * 1.0 / graphLength;
+	  var x = 0;
+      var s =  0
 
-  for(var i = 0; i < bufferLength; i++) {
-    var v = dataArray[i] * HEIGHT/4;
-    var y = HEIGHT/2 + v;
+      while (s < graphLength && dataArray[s] > 0 ) { s++; }
 
-    if(i === 0) {
-      canvasCtx.moveTo(x, y);
-    } else {
-      canvasCtx.lineTo(x, y);
-    }
-    x += sliceWidth;
-  }
+      while (s < graphLength && dataArray[s] < 0.05) {
+        s++;
+      }
 
-  canvasCtx.lineTo(canvas.width, canvas.height/2);
-  canvasCtx.stroke();
+	  for(var i=0 ; i< graphLength; i++) {
+	    var v = dataArray[s+i] * HEIGHT/4;
+	    var y = HEIGHT/2 + v;
+
+	    if(i === 0) {
+	      canvasCtx.moveTo(x, y);
+	    } else {
+	      canvasCtx.lineTo(x, y);
+	    }
+	    x += sliceWidth;
+      }
+
+      canvasCtx.lineTo(canvas.width, canvas.height/2);
+      canvasCtx.stroke();
   };
 
   env.connect(analyser);
