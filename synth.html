@@ -6,8 +6,10 @@
     <script src="qwerty-hancock.js"></script>
 </head>
 <body>
+<div>
 <div id="keyboard"></div>
 <canvas id="visualizer" width="600" height="150"></canvas>
+</div>
 <script>
   var keyboard = new QwertyHancock({
       id: 'keyboard',
@@ -96,6 +98,7 @@
   analyser.connect(context.destination);
 
   keyboard.keyDown = function (note, frequency) {
+      context.resume().then(function(){
       now = context.currentTime+0.1;
       amp = env.gain.value;
       env.gain.cancelScheduledValues(now);
@@ -106,6 +109,7 @@
       osc3.setFrequency(frequency*0.5, now);
 
       env.gain.linearRampToValueAtTime(1, now);
+      })
   };
 
   keyboard.keyUp = function (node, frequency) {
@@ -121,14 +125,13 @@
   canvasCtx.clearRect(0, 0, WIDTH, HEIGHT);
   draw();
 
-  // waveform 
-  // visualiser
+  // detune oscillator
+  // release / decay properly i.e  aim over then fall down to note
+
+  // wavetable / waveform
+
+  // chorus effect? delay?
+
   // polyphony
-  // voice + voice/2 + voice/4
-  // goes above the target freq then resets
-  // detuning a bit too
-  // plus chorus effect through delay
-
-
 </script> 
 </body></html>
