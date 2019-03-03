@@ -7,11 +7,12 @@
 </head>
 <body>
 <div id="keyboard"></div>
+<canvas id="visualizer" width="600" height="150"></canvas>
 <script>
   var keyboard = new QwertyHancock({
       id: 'keyboard',
-      startNote: 'A2',
-      octaves: 2,
+      startNote: 'A3',
+      octaves: 3,
       width: 600,
       height: 150,
   });
@@ -25,36 +26,84 @@
 	  osc.start();
 
 	  var env = context.createGain();
-	  var lfo = context.createOscillator();
-	  lfo.frequency = 4;
-	  lfo.type = 'square';
 	  env.gain.value = 1;
-	  lfo.connect(env.gain);
 	  osc.connect(env);
-	  env.connect(out);
-	  return osc;
+	  return {
+	  	connect: function(out) {
+		    env.connect(out);
+		},
+		setFrequency: function(frequency, now) { 
+		      osc.frequency.linearRampToValueAtTime(frequency, now);
+		}
+	  };
   }
 
+
+  var osc1 = sawtooth();
+  var osc2 = sawtooth();
+  var osc3 = sawtooth();
+
+
   var env = context.createGain();
-
-  var osc1 = sawtooth(env);
-  var osc2 = sawtooth(env);
-  var osc3 = sawtooth(env);
-
   env.gain.value = 0;
 
-  env.connect(context.destination);
+  osc1.connect(env);
+  osc2.connect(env);
+  osc3.connect(env);
+
+  var analyser = context.createAnalyser();
+  analyser.fftSize = 2048;
+  analyser.smoothingTimeConstant = 0.85;
+
+  var bufferLength = analyser.fftSize;
+  var dataArray = new Float32Array(bufferLength);
+  var canvas = document.querySelector('#visualizer');
+  var canvasCtx = canvas.getContext("2d");
+  WIDTH = canvas.width;
+  HEIGHT = canvas.height;
+
+
+  function draw() {
+  requestAnimationFrame(draw);
+  analyser.getFloatTimeDomainData(dataArray);
+
+  canvasCtx.fillStyle = 'rgb(200, 200, 200)';
+  canvasCtx.fillRect(0, 0, WIDTH, HEIGHT);
+  canvasCtx.lineWidth = 2;
+  canvasCtx.strokeStyle = 'rgb(0, 0, 0)';
+  canvasCtx.beginPath();
+
+  var sliceWidth = WIDTH * 1.0 / bufferLength;
+  var x = 0;
+
+  for(var i = 0; i < bufferLength; i++) {
+    var v = dataArray[i] * HEIGHT/4;
+    var y = HEIGHT/2 + v;
+
+    if(i === 0) {
+      canvasCtx.moveTo(x, y);
+    } else {
+      canvasCtx.lineTo(x, y);
+    }
+    x += sliceWidth;
+  }
+
+  canvasCtx.lineTo(canvas.width, canvas.height/2);
+  canvasCtx.stroke();
+  };
+
+  env.connect(analyser);
+  analyser.connect(context.destination);
 
   keyboard.keyDown = function (note, frequency) {
       now = context.currentTime+0.1;
       amp = env.gain.value;
-
       env.gain.cancelScheduledValues(now);
       env.gain.setValueAtTime(amp, now);
 
-      osc1.frequency.linearRampToValueAtTime(frequency, now);
-      osc2.frequency.linearRampToValueAtTime(frequency*0.25, now);
-      osc3.frequency.linearRampToValueAtTime(frequency*0.5, now);
+      osc1.setFrequency(frequency, now);
+      osc2.setFrequency(frequency*0.25, now);
+      osc3.setFrequency(frequency*0.5, now);
 
       env.gain.linearRampToValueAtTime(1, now);
   };
@@ -68,6 +117,18 @@
 
       env.gain.linearRampToValueAtTime(0, now + 0.5);
   }
+
+  canvasCtx.clearRect(0, 0, WIDTH, HEIGHT);
+  draw();
+
+  // waveform 
+  // visualiser
+  // polyphony
+  // voice + voice/2 + voice/4
+  // goes above the target freq then resets
+  // detuning a bit too
+  // plus chorus effect through delay
+
 
 </script> 
 </body></html>
