@@ -11,16 +11,6 @@
 <canvas id="visualizer" width="600" height="150"></canvas>
 </div>
 <script>
-  var keyboard = new QwertyHancock({
-      id: 'keyboard',
-      startNote: 'A1',
-      octaves: 3,
-      width: 600,
-      height: 150,
-  });
-
-  var context = new AudioContext();
-
   var stepCurve = new Float32Array(256);
   for (var i=0; i<128; i++) stepCurve[i] = -1;
   for (var i=128; i<256; i++) stepCurve[i] = 1;
@@ -28,7 +18,7 @@
   var bumpCurve = new Float32Array(2);
   for (var i=0; i<2; i++) bumpCurve[i] = 1;
 
-  function sawtooth(out) {
+  function pulse(context) {
       var osc = context.createOscillator();
       osc.type = 'sawtooth';
       osc.frequency.value = 440;
@@ -39,6 +29,13 @@
       var gain = context.createGain();
       var width = gain.gain;
       width.value = 0.1;
+
+      var lfo = context.createOscillator();
+      lfo.frequency.value = 4;
+      var lfo_width = context.createGain();
+      lfo_width.gain.value = 0.5;
+      lfo.connect(lfo_width);
+      lfo_width.connect(width);
 
       var bump = context.createWaveShaper();
       bump.curve = bumpCurve;
@@ -51,24 +48,84 @@
       bump.connect(gain);
 
       osc.start();
+      lfo.start();
 
       return {
         width: width, 
-          connect: function(out) {
+        connect: function(out) {
             pwm.connect(out);
         },
         setFrequency: function(frequency, now) { 
               osc.frequency.linearRampToValueAtTime(frequency, now);
-        //      osc2.frequency.linearRampToValueAtTime(frequency*2, now);
         }
       };
   }
 
 
-  var osc1 = sawtooth();
-  var osc2 = sawtooth();
-  var osc3 = sawtooth();
+  function pulsesaw(context) {
+      var saw = context.createOscillator();
+      saw.type = 'sawtooth';
+      saw.frequency.value = 440;
 
+      var osc = context.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.value = 440;
+
+      var pwm = context.createWaveShaper();
+      pwm.curve = stepCurve;
+
+      var gain = context.createGain();
+      var width = gain.gain;
+      width.value = 0.1;
+
+      var lfo = context.createOscillator();
+      lfo.frequency.value = 2;
+      var lfo_width = context.createGain();
+      lfo_width.gain.value = 0.5;
+      lfo.connect(lfo_width);
+      lfo_width.connect(width);
+
+      var wobble = context.createOscillator();
+      wobble.frequency.value = 8;
+      wobble.connect(saw.detune);
+      wobble.connect(osc.detune);
+
+      var bump = context.createWaveShaper();
+      bump.curve = bumpCurve;
+      bump.oversample = '4x';
+
+      osc.connect(pwm);
+      gain.connect(pwm);
+
+      osc.connect(bump);
+      bump.connect(gain);
+
+      var out = context.createGain();
+      out.gain.value = 1;
+
+      pwm.connect(out);
+      saw.connect(out);
+
+      osc.start();
+      lfo.start();
+      saw.start();
+
+      return {
+        connect: function(o) {
+            out.connect(o);
+        },
+        setFrequency: function(frequency, now) { 
+              osc.frequency.linearRampToValueAtTime(frequency, now);
+              saw.frequency.linearRampToValueAtTime(frequency/2, now);
+        }
+      };
+  }
+
+  var context = new AudioContext();
+
+  var osc1 = pulsesaw(context);
+  var osc2 = pulsesaw(context);
+  var osc3 = pulsesaw(context);
 
   var env = context.createGain();
   env.gain.value = 0;
@@ -80,12 +137,21 @@
   var analyser = context.createAnalyser();
   analyser.fftSize = 2048;
   analyser.smoothingTimeConstant = 0.85;
+  env.connect(analyser);
 
   var vol = context.createGain();
   vol.gain.value = 0.2;
-  env.connect(analyser);
+
   analyser.connect(vol);
   vol.connect(context.destination);
+
+  var keyboard = new QwertyHancock({
+      id: 'keyboard',
+      startNote: 'A2',
+      octaves: 3,
+      width: 600,
+      height: 150,
+  });
 
   keyboard.keyDown = function (note, frequency) {
       context.resume().then(function(){
@@ -95,8 +161,8 @@
       env.gain.setValueAtTime(amp, now);
 
       osc1.setFrequency(frequency, now);
-      osc2.setFrequency(frequency*0.25, now);
-      osc3.setFrequency(frequency*0.5, now);
+      osc2.setFrequency(frequency/2, now);
+      osc3.setFrequency(frequency/4, now);
 
       env.gain.linearRampToValueAtTime(1, now);
       })
