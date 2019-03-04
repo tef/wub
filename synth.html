@@ -13,7 +13,7 @@
 <script>
   var keyboard = new QwertyHancock({
       id: 'keyboard',
-      startNote: 'A2',
+      startNote: 'A1',
       octaves: 3,
       width: 600,
       height: 150,
@@ -29,20 +29,20 @@
   for (var i=0; i<2; i++) bumpCurve[i] = 1;
 
   function sawtooth(out) {
-	  var osc = context.createOscillator();
-	  osc.type = 'sawtooth';
-	  osc.frequency.value = 440;
+      var osc = context.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.value = 440;
 
       var pwm = context.createWaveShaper();
       pwm.curve = stepCurve;
-      //pwm.oversample = '2x';
 
       var gain = context.createGain();
       var width = gain.gain;
-      width.value = 0.5;
+      width.value = 0.1;
 
       var bump = context.createWaveShaper();
       bump.curve = bumpCurve;
+      bump.oversample = '4x';
 
       osc.connect(pwm);
       gain.connect(pwm);
@@ -52,15 +52,16 @@
 
       osc.start();
 
-	  return {
+      return {
         width: width, 
-	  	connect: function(out) {
-		    pwm.connect(out);
-		},
-		setFrequency: function(frequency, now) { 
-		      osc.frequency.linearRampToValueAtTime(frequency, now);
-		}
-	  };
+          connect: function(out) {
+            pwm.connect(out);
+        },
+        setFrequency: function(frequency, now) { 
+              osc.frequency.linearRampToValueAtTime(frequency, now);
+        //      osc2.frequency.linearRampToValueAtTime(frequency*2, now);
+        }
+      };
   }
 
 
@@ -80,8 +81,11 @@
   analyser.fftSize = 2048;
   analyser.smoothingTimeConstant = 0.85;
 
+  var vol = context.createGain();
+  vol.gain.value = 0.2;
   env.connect(analyser);
-  analyser.connect(context.destination);
+  analyser.connect(vol);
+  vol.connect(context.destination);
 
   keyboard.keyDown = function (note, frequency) {
       context.resume().then(function(){
@@ -117,17 +121,17 @@
   HEIGHT = canvas.height;
 
   function draw() {
-	  requestAnimationFrame(draw);
-	  analyser.getFloatTimeDomainData(dataArray);
+      requestAnimationFrame(draw);
+      analyser.getFloatTimeDomainData(dataArray);
 
-	  canvasCtx.fillStyle = 'rgb(200, 200, 200)';
-	  canvasCtx.fillRect(0, 0, WIDTH, HEIGHT);
-	  canvasCtx.lineWidth = 2;
-	  canvasCtx.strokeStyle = 'rgb(0, 0, 0)';
-	  canvasCtx.beginPath();
+      canvasCtx.fillStyle = 'rgb(200, 200, 200)';
+      canvasCtx.fillRect(0, 0, WIDTH, HEIGHT);
+      canvasCtx.lineWidth = 2;
+      canvasCtx.strokeStyle = 'rgb(0, 0, 0)';
+      canvasCtx.beginPath();
 
-	  var sliceWidth = WIDTH * 1.0 / graphLength;
-	  var x = 0;
+      var sliceWidth = WIDTH * 1.0 / graphLength;
+      var x = 0;
       var s =  0
 
       while (s < graphLength && dataArray[s] > 0 ) { s++; }
@@ -136,16 +140,16 @@
         s++;
       }
 
-	  for(var i=0 ; i< graphLength; i++) {
-	    var v = dataArray[s+i] * HEIGHT/4;
-	    var y = HEIGHT/2 + v;
+      for(var i=0 ; i< graphLength; i++) {
+        var v = dataArray[s+i] * HEIGHT/8;
+        var y = HEIGHT/2 + v;
 
-	    if(i === 0) {
-	      canvasCtx.moveTo(x, y);
-	    } else {
-	      canvasCtx.lineTo(x, y);
-	    }
-	    x += sliceWidth;
+        if(i === 0) {
+          canvasCtx.moveTo(x, y);
+        } else {
+          canvasCtx.lineTo(x, y);
+        }
+        x += sliceWidth;
       }
 
       canvasCtx.lineTo(canvas.width, canvas.height/2);
