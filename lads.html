@@ -22,7 +22,7 @@
   });
 
   var piano = new Tone.Sampler({
-      "C4":"c4.mp3"
+      "C4":"lads.m4a"
   });
 
   piano.toMaster();
@@ -32,9 +32,9 @@
   Tone.Buffer.onload = function() {
 	  keyboard.keyDown = function (note, freq) {
 	      context.resume().then(function(){
-		var pitch = 9 + 12*Math.log(freq/440)/Math.log(2)
+		var pitch = 69 + 12*Math.log(freq/440)/Math.log(2)
 		piano.triggerAttack("C4");
-		piano.pitch = pitch;
+		piano.pitch = pitch-60; // C4 is 60
 	      })
 	  }
   }
