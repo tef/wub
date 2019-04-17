@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Synth</title>
+    <script src="qwerty-hancock.js"></script>
+    <script src="Tone.min.js"></script>
+</head>
+<body>
+<div>
+<div id="keyboard"></div>
+</div>
+<script>
+  var context = new AudioContext();
+
+  var keyboard = new QwertyHancock({
+      id: 'keyboard',
+      startNote: 'A2',
+      octaves: 3,
+      width: 600,
+      height: 150,
+  });
+
+  var piano = new Tone.Sampler({
+      "C4":"c4.mp3"
+  });
+
+  piano.toMaster();
+
+  keyboard.keyDown = function(n,f) {};
+
+  Tone.Buffer.onload = function() {
+	  keyboard.keyDown = function (note, freq) {
+	      context.resume().then(function(){
+		var pitch = 9 + 12*Math.log(freq/440)/Math.log(2)
+		piano.triggerAttack("C4");
+		piano.pitch = pitch;
+	      })
+	  }
+  }
+
+  keyboard.keyUp = function (node, frequency) {
+  }
+
+</script> 
+</body></html>
