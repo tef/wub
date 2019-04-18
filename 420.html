@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Synth</title>
+    <script src="qwerty-hancock.js"></script>
+    <script src="Tone.js"></script>
+</head>
+<body>
+<div>
+<div id="keyboard"></div>
+</div>
+<script>
+  var context = new AudioContext();
+
+  var keyboard = new QwertyHancock({
+      id: 'keyboard',
+      startNote: 'A2',
+      octaves: 3,
+      width: 600,
+      height: 150,
+  });
+
+
+
+  keyboard.keyUp = function (node, frequency) {};
+  keyboard.keyDown = function (node, frequency) {};
+
+  var pianos = [];
+  var loading = 0;
+  var total = 0;
+  var next = 0;
+
+  keyDown = function (note, freq) {
+      context.resume().then(function(){
+	  pianos[next].triggerAttack(note);
+	  next = (next+1) % total;
+      });
+  }
+  var on_load = function() {
+  	loading =loading -1;
+	if (loading  == 0) { keyboard.keyDown = keyDown; }
+  }
+
+  pianos[0] = new Tone.Sampler({"C3":"1.m4a"}, on_load)
+  pianos[1] = new Tone.Sampler({"C3":"2.m4a"}, on_load)
+  pianos[2] = new Tone.Sampler({"C3":"3.m4a"}, on_load)
+  pianos[3] = new Tone.Sampler({"C3":"4.m4a"}, on_load)
+
+  loading = 4;
+  total = 4;
+  
+  for (var p =0; p<total; p++) {
+	  pianos[p].toMaster();
+  }
+
+</script> 
+</body></html>
