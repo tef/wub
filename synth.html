@@ -18,6 +18,12 @@
   var bumpCurve = new Float32Array(2);
   for (var i=0; i<2; i++) bumpCurve[i] = 1;
 
+  var pwmbumpCurve = new Float32Array(2);
+  for (var i=0; i<2; i++) pwmbumpCurve[i] = i
+
+  var unbumpCurve = new Float32Array(2);
+  for (var i=0; i<2; i++) unbumpCurve[i] = -1;
+
   function pulse(context) {
       var osc = context.createOscillator();
       osc.type = 'sawtooth';
@@ -63,9 +69,6 @@
 
 
   function pulsesaw(context) {
-      var saw = context.createOscillator();
-      saw.type = 'sawtooth';
-      saw.frequency.value = 440;
 
       var osc = context.createOscillator();
       osc.type = 'sawtooth';
@@ -79,15 +82,15 @@
       width.value = 0.1;
 
       var lfo = context.createOscillator();
-      lfo.frequency.value = 2;
+      lfo.frequency.value = 0.2;
       var lfo_width = context.createGain();
-      lfo_width.gain.value = 0.5;
+      lfo_width.gain.value = 0.63;
+
       lfo.connect(lfo_width);
-      lfo_width.connect(width);
+      //lfo_width.connect(width);
 
       var wobble = context.createOscillator();
-      wobble.frequency.value = 8;
-      wobble.connect(saw.detune);
+      wobble.frequency.value = 20;
       wobble.connect(osc.detune);
 
       var bump = context.createWaveShaper();
@@ -99,12 +102,41 @@
 
       osc.connect(bump);
       bump.connect(gain);
+/*
+      var pwmbump = context.createWaveShaper();
+      pwmbump.curve = pwmbumpCurve;
+      pwm.connect(pwmbump);
 
+
+      var sawbump = context.createWaveShaper();
+      sawbump.curve = pwmbumpCurve;
+      saw.connect(sawbump);
+
+      var saw2 = context.createGain();
+      saw2.gain.value = 1;
+      sawbump.connect(saw2);
+
+      pwmbump.connect(saw2.gain);
+
+      var unbump = context.createWaveShaper();
+      unbump.curve = unbumpCurve;
+      pwmbump.oversample = '4x';
+      saw2.connect(unbump);
+*/
       var out = context.createGain();
       out.gain.value = 1;
 
+      var saw = context.createOscillator();
+      saw.type = 'sawtooth';
+      saw.frequency.value = 440;
+      wobble.connect(saw.detune);
+
+      var inv = context.createGain();
+      inv.gain.value = 0.5
+
+      osc.connect(inv);
+      inv.connect(out);
       pwm.connect(out);
-      saw.connect(out);
 
       osc.start();
       lfo.start();
@@ -125,14 +157,12 @@
 
   var osc1 = pulsesaw(context);
   var osc2 = pulsesaw(context);
-  var osc3 = pulsesaw(context);
 
   var env = context.createGain();
   env.gain.value = 0;
 
   osc1.connect(env);
   osc2.connect(env);
-  osc3.connect(env);
 
   var analyser = context.createAnalyser();
   analyser.fftSize = 2048;
@@ -140,7 +170,7 @@
   env.connect(analyser);
 
   var vol = context.createGain();
-  vol.gain.value = 0.2;
+  vol.gain.value = 0.1;
 
   analyser.connect(vol);
   vol.connect(context.destination);
@@ -161,8 +191,7 @@
       env.gain.setValueAtTime(amp, now);
 
       osc1.setFrequency(frequency, now);
-      osc2.setFrequency(frequency/2, now);
-      osc3.setFrequency(frequency/4, now);
+      osc2.setFrequency(frequency, now);
 
       env.gain.linearRampToValueAtTime(1, now);
       })
@@ -211,9 +240,9 @@
         var y = HEIGHT/2 + v;
 
         if(i === 0) {
-          canvasCtx.moveTo(x, y);
+          canvasCtx.moveTo(x, HEIGHT-y);
         } else {
-          canvasCtx.lineTo(x, y);
+          canvasCtx.lineTo(x, HEIGHT-y);
         }
         x += sliceWidth;
       }

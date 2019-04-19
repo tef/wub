@@ -5,11 +5,28 @@
     <title>Synth</title>
     <script src="qwerty-hancock.js"></script>
     <script src="Tone.js"></script>
+      <style>
+    body {
+      display: table;
+      width: 100%;
+      height: 100%;
+    }
+    section {
+      font-size: 5rem;
+      height: 100vh;
+      display:table-cell;
+      vertical-align: middle;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
 </head>
 <body>
-<div>
+<section>
 <div id="keyboard"></div>
-</div>
+</section>
 <script>
   var context = new AudioContext();
 
